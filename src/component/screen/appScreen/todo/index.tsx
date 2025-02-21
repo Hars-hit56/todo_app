@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     alignItems: 'center',
     flex: 1,
-    ...boxShadowTwo(colors.grey400),
+    ...boxShadowTwo(colors.grey300),
   },
   count: {
     fontSize: textScale(16),

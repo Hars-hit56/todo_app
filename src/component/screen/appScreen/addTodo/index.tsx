@@ -54,9 +54,13 @@ const AddTodo = ({route}: any) => {
       if (!validateTask.success) return setIsAddBtnLoading(false);
 
       if (params.type === 'ADD') {
+        const lastId =
+          todosData.length > 0
+            ? Math.max(...todosData.map((todo: TodoListData) => todo.id))
+            : 0;
         const payload: AddTodoPayload = {
           userId: 1,
-          id: todosData?.length + 1,
+          id: lastId + 1,
           title: task,
           completed: false,
           created_at: new Date().toISOString(),
@@ -69,8 +73,6 @@ const AddTodo = ({route}: any) => {
           updated_at: new Date().toISOString(),
           title: task,
         };
-        console.log('payload', payload);
-
         dispatch(editTodo({editTodoData: payload}));
       }
       goBack();
@@ -79,6 +81,8 @@ const AddTodo = ({route}: any) => {
       setIsAddBtnLoading(false);
     }
   };
+  console.log(todosData, 'todosData');
+
   return (
     <AppContainer
       backgroundColor={colors.appBackgroundColor}

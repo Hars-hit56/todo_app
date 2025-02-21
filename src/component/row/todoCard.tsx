@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     marginBottom: spacing.MARGIN_16,
     borderRadius: spacing.RADIUS_10,
-    ...boxShadowTwo(colors.grey400),
+    ...boxShadowTwo(colors.grey300),
     ...commonStyle.flexDirectionRow,
     gap: spacing.MARGIN_10,
     flex: 1,
