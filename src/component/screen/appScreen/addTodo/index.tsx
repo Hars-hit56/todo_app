@@ -1,15 +1,11 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
-import {shallowEqual, useDispatch, useSelector} from 'react-redux';
-import {addTodo, editTodo} from '../../../../redux/slices/todoSlice';
+import {addTodo, subscribeToTodos, updateTodo} from '../../../../firebaseCRUD';
 import {APP_PADDING_HORIZONTAL} from '../../../../styles/commonStyles';
 import {spacing} from '../../../../styles/spacing';
 import colors from '../../../../utility/colors';
 import {goBack} from '../../../../utility/commonFunction';
-import {
-  TodoListData,
-  TodoOperation,
-} from '../../../../utility/type/generalType';
+import {TodoOperation} from '../../../../utility/type/generalType';
 import {AddTodoPayload} from '../../../../utility/type/payloadType';
 import {isInputEmpty} from '../../../../utility/validation';
 import Button from '../../../common/buttons/Button';
@@ -20,28 +16,26 @@ import TextInput from '../../../common/inputBoxes/TextInput';
 type ParamsType = {
   params: {
     type: TodoOperation;
-    recorrectData: TodoListData;
+    recorrectData: Record<string, any>;
   };
 };
 
 const AddTodo = ({route}: any) => {
   const {params}: ParamsType = route;
-  const dispatch = useDispatch();
   //state
   const [task, setTask] = useState(
-    params.type === 'EDIT' ? params.recorrectData.title : '',
+    params.type === 'EDIT' ? params?.recorrectData?.payload?.title : '',
   );
   const [taskError, setTaskError] = useState('');
   const [isAddBtnLoading, setIsAddBtnLoading] = useState(false);
+  const [todos, setTodos] = useState<Record<string, any>[]>([]);
 
-  const {todosData} = useSelector(
-    (state: any) => ({
-      todosData: state.TODO_SLICE.todosData,
-    }),
-    shallowEqual,
-  );
+  useEffect(() => {
+    const unsubscribe = subscribeToTodos(setTodos);
+    return () => unsubscribe();
+  }, []);
 
-  const onPressAddBtn = () => {
+  const onPressAddBtn = async () => {
     setIsAddBtnLoading(true);
     try {
       const validateTask = isInputEmpty(task);
@@ -55,25 +49,21 @@ const AddTodo = ({route}: any) => {
 
       if (params.type === 'ADD') {
         const lastId =
-          todosData.length > 0
-            ? Math.max(...todosData.map((todo: TodoListData) => todo.id))
+          todos?.length > 0
+            ? Math.max(
+                ...todos?.map((todo: Record<string, any>) => todo?.payload?.id),
+              )
             : 0;
         const payload: AddTodoPayload = {
-          userId: 1,
           id: lastId + 1,
           title: task,
           completed: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        dispatch(addTodo({todosData: payload}));
+        await addTodo(payload);
       } else {
-        const payload = {
-          ...params.recorrectData,
-          updated_at: new Date().toISOString(),
-          title: task,
-        };
-        dispatch(editTodo({editTodoData: payload}));
+        await updateTodo(params.recorrectData, task, 'EDIT');
       }
       goBack();
     } catch (error) {
@@ -81,7 +71,7 @@ const AddTodo = ({route}: any) => {
       setIsAddBtnLoading(false);
     }
   };
-  console.log(todosData, 'todosData');
+  console.log(todos, 'todos', params.recorrectData);
 
   return (
     <AppContainer

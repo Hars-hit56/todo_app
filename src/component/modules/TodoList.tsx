@@ -1,12 +1,11 @@
 import {FlatList, View} from 'react-native';
-import {TodoListData} from '../../utility/type/generalType';
 import TodoCard from '../row/todoCard';
 import EmptyList from './EmptyList';
 
 type TodoListProps = {
-  todos: TodoListData[];
-  onPressTodoCard: (todo: TodoListData) => void;
-  onPressCheckBox: (todo: TodoListData) => void;
+  todos: Record<string, any>[];
+  onPressTodoCard: (todo: Record<string, any>) => void;
+  onPressCheckBox: (todo: Record<string, any>) => void;
 };
 const TodoList = ({todos, onPressTodoCard, onPressCheckBox}: TodoListProps) => {
   return (

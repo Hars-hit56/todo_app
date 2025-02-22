@@ -1,7 +1,15 @@
 import {useEffect, useMemo, useState} from 'react';
-import {StyleSheet, TouchableOpacity, View} from 'react-native';
-import {shallowEqual, useDispatch, useSelector} from 'react-redux';
-import {deleteTodo, toggleTodo} from '../../../../redux/slices/todoSlice';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  deleteTodo,
+  subscribeToTodos,
+  updateTodo,
+} from '../../../../firebaseCRUD';
 import commonStyle, {
   APP_PADDING_HORIZONTAL,
 } from '../../../../styles/commonStyles';
@@ -13,7 +21,6 @@ import colors from '../../../../utility/colors';
 import {navigate} from '../../../../utility/commonFunction';
 import {SCREEN_ADD_TOTO} from '../../../../utility/constants';
 import {Images} from '../../../../utility/imagePaths';
-import {TodoListData} from '../../../../utility/type/generalType';
 import {FILTER_TAB_DATA, SORT_TODO} from '../../../../utility/utilityData';
 import FabButton from '../../../common/buttons/FabButton';
 import AppContainer from '../../../common/container/AppContainer';
@@ -26,27 +33,30 @@ import Tab from '../../../modules/Tab';
 import TodoList from '../../../modules/TodoList';
 
 const Todo = () => {
-  const dispatch = useDispatch();
   // state
   const [activeTab, setActiveTab] = useState('');
   const [sortedByText, setSortedByText] = useState<Record<string, string>>({});
-  const [todos, setTodos] = useState<TodoListData[]>([]);
-  const [todoRecorrectData, setTodoRecorrectData] = useState<TodoListData>();
+  const [todosData, setTodosData] = useState<Record<string, any>[]>([]);
+  const [todos, setTodos] = useState<Record<string, any>[]>([]);
+  const [todoRecorrectData, setTodoRecorrectData] = useState<
+    Record<string, any>
+  >([]);
 
   const [showActionModal, setShowActionModal] = useState(false);
   const [showItemPickerModal, setShowItemPickerModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  //redux state
-  const {todosData} = useSelector(
-    (state: any) => ({
-      todosData: state.TODO_SLICE.todosData,
-    }),
-    shallowEqual,
-  );
-
   useEffect(() => {
     setActiveTab(FILTER_TAB_DATA[0].tabName);
+  }, []);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const unsubscribe = subscribeToTodos(todos => {
+      setTodosData(todos);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -66,13 +76,16 @@ const Todo = () => {
     closeItemPickerModal();
     if (item.value == SORT_TODO[0].value) {
       if (item.value === SORT_TODO[0].value) {
-        const sortedTodos = [...todos].sort((a, b) => a.id - b.id);
+        const sortedTodos = [...todos].sort(
+          (a, b) => a.payload.id - b.payload.id,
+        );
         setTodos(sortedTodos);
       }
     } else {
       const sortedTodos = [...todos].sort(
         (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          new Date(b.payload.created_at).getTime() -
+          new Date(a.payload.created_at).getTime(),
       );
       setTodos(sortedTodos);
     }
@@ -90,12 +103,12 @@ const Todo = () => {
     setActiveTab(tabName);
     if (tabName === 'ACTIVE') {
       const filterTodoData = todosData.filter(
-        (item: TodoListData) => !item.completed,
+        (item: Record<string, any>) => !item?.payload?.completed,
       );
       setTodos(filterTodoData);
     } else if (tabName === 'COMPLETED') {
       const filterTodoData = todosData.filter(
-        (item: TodoListData) => item.completed,
+        (item: Record<string, any>) => item?.payload?.completed,
       );
       setTodos(filterTodoData);
     } else {
@@ -103,19 +116,19 @@ const Todo = () => {
     }
   };
 
-  const onPressTodoCard = (todo: TodoListData) => {
+  const onPressTodoCard = (todo: Record<string, any>) => {
     setShowActionModal(true);
     setTodoRecorrectData(todo);
   };
 
-  const onPressCheckBox = (todo: TodoListData) => {
-    dispatch(toggleTodo({updateTodoData: todo}));
+  const onPressCheckBox = async (todo: Record<string, any>) => {
+    updateTodo(todo, 'TOGGLE');
   };
 
   const completedTaskCount = useMemo(() => {
     return todosData.reduce(
-      (count: number, todo: TodoListData) =>
-        todo.completed ? count + 1 : count,
+      (count: number, todo: Record<string, any>) =>
+        todo?.payload?.completed ? count + 1 : count,
       0,
     );
   }, [todosData]);
@@ -129,8 +142,8 @@ const Todo = () => {
     navigate(SCREEN_ADD_TOTO, {type: 'EDIT', recorrectData: todoRecorrectData});
   };
 
-  const onPressDelete = () => {
-    dispatch(deleteTodo({deleteTodoData: todoRecorrectData}));
+  const onPressDelete = async () => {
+    await deleteTodo(todoRecorrectData);
     closeActionModal();
   };
 
@@ -174,13 +187,17 @@ const Todo = () => {
           </View>
         )}
       </View>
-      <View style={{flex: 1}}>
-        <TodoList
-          todos={todos}
-          onPressTodoCard={onPressTodoCard}
-          onPressCheckBox={onPressCheckBox}
-        />
-      </View>
+      {isLoading ? (
+        <ActivityIndicator color={colors.theme} />
+      ) : (
+        <View style={{flex: 1}}>
+          <TodoList
+            todos={todos}
+            onPressTodoCard={onPressTodoCard}
+            onPressCheckBox={onPressCheckBox}
+          />
+        </View>
+      )}
 
       <FabButton
         leftImage={Images.IMG_ADD_ICON}

@@ -8,16 +8,15 @@ import {fontNames} from '../../styles/typography';
 import colors from '../../utility/colors';
 import {convertDateTime} from '../../utility/commonFunction';
 import {Images} from '../../utility/imagePaths';
-import {TodoListData} from '../../utility/type/generalType';
 import Image from '../common/Image';
 import RegularText from '../common/RegularText';
 
 type TodoCardProps = {
-  todo: TodoListData;
+  todo: Record<string, any>;
   index: number;
   lastIndex: number;
-  onPressTodoCard: (todo: TodoListData) => void;
-  onPressCheckBox: (todo: TodoListData) => void;
+  onPressTodoCard: (todo: Record<string, any>) => void;
+  onPressCheckBox: (todo: Record<string, any>) => void;
 };
 
 const TodoCard = ({
@@ -39,7 +38,7 @@ const TodoCard = ({
         onPress={() => onPressCheckBox(todo)}
         style={[
           styles.checkBoxContainer,
-          todo.completed && {
+          todo?.payload?.completed && {
             backgroundColor: colors.theme,
             borderColor: colors.theme,
           },
@@ -47,9 +46,15 @@ const TodoCard = ({
         <Image source={Images.IMG_RIGHT_MARK} />
       </TouchableOpacity>
       <View style={{flex: 1}}>
-        <RegularText style={styles.text}>{todo.title}</RegularText>
+        <RegularText
+          style={[
+            styles.text,
+            todo?.payload?.completed && {textDecorationLine: 'line-through'},
+          ]}>
+          {todo?.payload?.title}
+        </RegularText>
         <RegularText style={styles.date}>
-          {convertDateTime(todo.created_at, 'DD MMM HH:mm A')}
+          {convertDateTime(todo?.payload?.created_at, 'DD MMM HH:mm A')}
         </RegularText>
       </View>
     </TouchableOpacity>
